@@ -3,13 +3,18 @@ from django.contrib.auth.models import User,auth
 from django.http import HttpResponse
 from django.contrib import messages
 from django.contrib.auth.decorators import login_required
-from .models import Profile
+from .models import Profile, Post
 
 
 # Create your views here.
 @login_required(login_url='signin')
 def index(request):
-    return render(request,'index.html')
+    
+    user_object = User.objects.get(username=request.user.username)
+       
+    user_profile = Profile.objects.get(user=user_object)
+        
+    return render(request, 'index.html', {'user_profile': user_profile})
 
 def signup(request):
 
@@ -30,12 +35,13 @@ def signup(request):
                 user.save()
 
                 # log user in and redirect to settings page
-
+                user_login = auth.authenticate(username=username,password=password)
+                auth.login(request,user_login)
                 #create a Profile object for the new user
                 # user_model = User.objects.get(username=username)
                 new_profile = Profile.objects.create(user=user,id_user=user.id)
                 new_profile.save()
-                return redirect('signup')
+                return redirect('setting')
         
         else:
             messages.info(request,'Password Not Matching')
@@ -64,3 +70,46 @@ def signin(request):
 def logout(request):
     auth.logout(request)
     return redirect('signin')
+
+@login_required(login_url='signin')
+def setting(request):
+    user_profile = Profile.objects.get(user=request.user)
+
+    if request.method == 'POST':
+        
+        if request.FILES.get('image') == None:
+            image = user_profile.profileimg
+            bio = request.POST['bio']
+            location = request.POST['location']
+
+            user_profile.profileimg = image
+            user_profile.bio = bio
+            user_profile.location = location
+            user_profile.save()
+        if request.FILES.get('image') != None:
+            image = request.FILES.get('image')
+            bio = request.POST['bio']
+            location = request.POST['location']
+
+            user_profile.profileimg = image
+            user_profile.bio = bio
+            user_profile.location = location
+            user_profile.save()
+        return redirect('setting')
+
+    return render(request,'setting.html',{'user_profile':user_profile})
+
+@login_required(login_url='signin')
+def upload(request):
+
+    if request.method == 'POST':
+        user = request.user.username
+        image = request.FILES.get('image_upload')
+        caption = request.POST['caption']
+        new_post = Post.objects.create(user=user,image=image,caption=caption)
+        new_post.save()
+        return redirect('/')
+    else:
+        return redirect('/')
+
+    return HttpResponse('<h1>upload view</h1>')
