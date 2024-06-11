@@ -1,6 +1,6 @@
 from django.shortcuts import render, redirect
 from django.contrib.auth.models import User,auth
-from django.http import HttpResponse
+from django.http import HttpResponse, JsonResponse
 from django.contrib import messages
 from django.contrib.auth.decorators import login_required
 from .models import Profile, Post, LikePost, FollowersCount
@@ -196,12 +196,15 @@ def like_post(request):
         new_like.save()
         post.no_of_likes += 1
         post.save()
-        return redirect('/')
+        
     else:
         like_filter.delete()
         post.no_of_likes -= 1
         post.save()
-        return redirect('/')
+    response_data = {
+        'new_likes':post.no_of_likes
+    }
+    return JsonResponse(response_data)
     
 @login_required(login_url='signin')
 def follow(request):
